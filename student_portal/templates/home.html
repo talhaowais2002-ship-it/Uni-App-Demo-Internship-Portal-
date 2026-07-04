@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% if is_guest %}
+    <div style="padding: 20px 0; margin-bottom: 30px; border-bottom: 1px solid #eee;">
+        <h2>Global Vision Solutions Portal</h2>
+        <p>Active interns and coordinators can log in to track or verify training hours.</p>
+        <a href="{% url 'login' %}" class="btn-primary" style="text-decoration: none;">Sign In to Portal →</a>
+    </div>
+{% endif %}
+
+<h2>Select an Internship Track</h2>
+<p style="color: #666; margin-bottom: 30px;">Navigate down the matrix to look for corporate openings.</p>
+
+{% if not current_category %}
+    <div class="block-grid">
+        {% for cat in categories %}
+            <div class="visual-block" onclick="location.href='?category={{ cat.id }}'">
+                <div style="font-size: 40px; margin-bottom: 10px;">{{ cat.icon }}</div>
+                <h3>{{ cat.name }}</h3>
+                <p style="font-size: 13px; color: #777;">Click to explore specific specialization tracks.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+{% elif current_category and not postings %}
+    <div style="margin-bottom: 20px;">
+        <a href="?" style="color: var(--primary-blue); text-decoration: none; font-weight: bold;">← Back to Main Categories</a>
+        <h3 style="margin-top: 15px;">Domain: <span style="color: var(--primary-blue)">{{ current_category.name }}</span></h3>
+    </div>
+    
+    <div class="block-grid">
+        {% for track in tracks %}
+            <div class="visual-block" onclick="location.href='?category={{ current_category.id }}&track={{ track.id }}'" style="border-style: dashed;">
+                <h3>🎯 {{ track.title }}</h3>
+                <p style="font-size: 13px; color: #555;">{{ track.description }}</p>
+                <span style="color: var(--primary-blue); font-size: 12px; font-weight: bold; display: block; margin-top: 15px;">View Positions →</span>
+            </div>
+        {% empty %}
+            <p>No specialized tracks configured under this segment yet.</p>
+        {% endfor %}
+    </div>
+
+{% elif current_track %}
+    <div style="margin-bottom: 20px;">
+        <a href="?category={{ current_category.id }}" style="color: var(--primary-blue); text-decoration: none; font-weight: bold;">← Back to Tracks</a>
+        <h3 style="margin-top: 15px;">Specialization Area: <span style="color: var(--primary-blue)">{{ current_track.title }}</span></h3>
+    </div>
+
+    <div style="display: grid; gap: 20px;">
+        {% for post in postings %}
+            <div style="border: 1px solid #ddd; padding: 25px; border-radius: 6px; background-color: white; border-left: 4px solid var(--primary-blue);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 style="margin: 0 0 5px 0; color: var(--primary-blue);">{{ post.title }}</h3>
+                        <p style="margin: 0 0 15px 0; color: #555; font-weight: 600;">🏢 {{ post.company.company_name }} — {{ post.location }}</p>
+                    </div>
+                    <span style="background-color: #0a2540; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px;">{{ post.nature }}</span>
+                </div>
+                <p style="font-size: 14px;">{{ post.description }}</p>
+                <div style="margin: 15px 0; font-size: 13px; background: #f9f9f9; padding: 10px; border-radius: 4px;">
+                    <strong>Level:</strong> {{ post.level }} | <strong>Education:</strong> {{ post.education_level }} | <strong>Stipend:</strong> {{ post.salary_range|default:"Unpaid" }}
+                </div>
+                <a href="{% url 'apply_internship' post.id %}" class="btn-primary" style="text-decoration: none; display: inline-block; font-size: 14px;">Apply for Vacancy</a>
+            </div>
+        {% empty %}
+            <p>No active placement listings found for this specific track line.</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if not is_guest and my_applications %}
+    <h3 style="margin-top: 50px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;">Submitted Candidate Applications</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead>
+            <tr style="background: var(--primary-blue); color: white; text-align: left;">
+                <th style="padding: 10px;">Internship Position</th>
+                <th style="padding: 10px;">Applied Date</th>
+                <th style="padding: 10px;">Review Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in my_applications %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px;">{{ app.internship.title }}</td>
+                    <td style="padding: 10px;">{{ app.applied_at|date:"M d, Y" }}</td>
+                    <td style="padding: 10px;">
+                        {% if app.status == 'Shortlisted' %}
+                            <span style="padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; background:#e6f4ea; color:#137333;">
+                        {% elif app.status == 'Rejected' %}
+                            <span style="padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; background:#fce8e6; color:#c5221f;">
+                        {% else %}
+                            <span style="padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; background:#fef7e0; color:#b06000;">
+                        {% endif %}
+                            {{ app.status }}
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% endblock %}

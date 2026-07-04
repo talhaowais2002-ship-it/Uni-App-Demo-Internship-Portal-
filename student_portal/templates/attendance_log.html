@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Attendance Ledger</h2>
+<p>Record daily activity logs for operational programmatic metric tracking.</p>
+
+<div style="display: flex; gap: 30px; margin-top: 30px;">
+    
+    <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 6px; text-align: center;">
+        <h3>Shift Time Tracker</h3>
+        {% if record and not record.check_out %}
+            <p style="color: #1a73e8; font-weight: bold; margin-bottom: 20px;">⚡ You are currently on the clock! Active shift processing.</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="action" value="clock_out" style="background:#d93025; color:white; border:none; padding:15px 30px; font-size:16px; border-radius:4px; font-weight:bold; cursor:pointer;">Clock Out Now</button>
+            </form>
+        {% else %}
+            <p style="color: #666; margin-bottom: 20px;">No active session tracking initialized for today.</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="action" value="clock_in" style="background:#1e7e34; color:white; border:none; padding:15px 30px; font-size:16px; border-radius:4px; font-weight:bold; cursor:pointer;">Initialize Clock In</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <div style="flex: 1; border: 1px solid #ddd; padding: 25px; border-radius: 6px;">
+        <h3>Required Target Tracker</h3>
+        <div style="font-size: 36px; font-weight: bold; color: var(--primary-blue); margin: 15px 0;">
+            {{ verified_hours }} / {{ target_hours }} Hours
+        </div>
+        <p style="font-size: 13px; color: #666; margin: 0;">Total aggregate log hours formally verified by program Coordinator.</p>
+    </div>
+</div>
+
+<div style="border: 1px solid #ddd; padding: 25px; border-radius: 6px; margin-top: 30px; background: #fff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;">
+        <h3 style="margin: 0;">🗓️ Shift Calendar Heatmap</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button id="prevMonthBtn" style="background: #f1f3f4; border: 1px solid #ced4da; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">&larr;</button>
+            <span id="calendarMonthYear" style="font-weight: bold; font-size: 16px; min-width: 140px; text-align: center; display: inline-block;"></span>
+            <button id="nextMonthBtn" style="background: #f1f3f4; border: 1px solid #ced4da; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">&rarr;</button>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; margin-bottom: 10px; font-weight: bold; color: #5f6368; font-size: 13px;">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+    <div id="calendarDaysGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;"></div>
+</div>
+
+<h3 style="margin-top: 40px; border-bottom: 2px solid var(--primary-blue); padding-bottom: 10px;">Personal Operations Ledger</h3>
+<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr style="background: var(--primary-blue); color: white; text-align: left;">
+            <th style="padding: 10px;">Shift Date</th>
+            <th style="padding: 10px;">Clock In</th>
+            <th style="padding: 10px;">Clock Out</th>
+            <th style="padding: 10px;">Computed Duration</th>
+            <th style="padding: 10px;">Audit Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for shift in my_shifts %}
+            <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 10px;">{{ shift.date|date:"Y-m-d" }}</td>
+                <td style="padding: 10px;">{{ shift.check_in|date:"g:i A" }}</td>
+                <td style="padding: 10px;">{{ shift.check_out|date:"g:i A"|default:"--" }}</td>
+                <td style="padding: 10px;">{{ shift.hours_worked }} hrs</td>
+                <td style="padding: 10px;">
+                    {% if shift.is_verified %}
+                        <span style="color: #137333; font-weight: bold;">✓ Verified</span>
+                    {% else %}
+                        <span style="color: #b06000; font-weight: bold;">⏳ Pending Verification</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5" style="padding: 15px; text-align: center; color: #777;">No transaction rows committed to storage layer.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script id="calendar-data" type="application/json">
+    {{ calendar_data_json|safe }}
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Read data directly from the isolated text node to prevent IDE validation bugs
+        const dataElement = document.getElementById("calendar-data");
+        const shiftData = dataElement ? JSON.parse(dataElement.textContent) : {};
+        let currentCalendarDate = new Date();
+        
+        function drawCalendar(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById("calendarMonthYear").innerText = monthNames[month] + " " + year;
+            
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const prevLastDay = new Date(year, month, 0).getDate();
+            
+            let htmlBuffer = "";
+            
+            for (let x = firstDayIndex; x > 0; x--) {
+                htmlBuffer += `<div style="padding: 8px; color: #ccc; background: #fafafa; border: 1px dashed #e0e0e0; border-radius: 4px; min-height: 55px; font-size: 12px;">${prevLastDay - x + 1}</div>`;
+            }
+            
+            for (let i = 1; i <= lastDay; i++) {
+                const dayStr = String(i).padStart(2, '0');
+                const monthStr = String(month + 1).padStart(2, '0');
+                const uniqueDateKey = `${year}-${monthStr}-${dayStr}`;
+                
+                let badgeMarkup = "";
+                let itemBackground = "background: #ffffff; border: 1px solid #ddd;";
+                
+                if (shiftData[uniqueDateKey]) {
+                    const record = shiftData[uniqueDateKey];
+                    const trackingColor = record.verified ? "#137333" : "#b06000";
+                    badgeMarkup = `<div style="font-size: 11px; font-weight: bold; background: ${trackingColor}12; color: ${trackingColor}; padding: 2px; border-radius: 3px; margin-top: 5px; border: 1px solid ${trackingColor}30; text-align: center;">⚡ ${record.hours}h</div>`;
+                    itemBackground = "background: #fdfdfd; border: 1px solid #b0b0b0;";
+                }
+                
+                const liveSystemDate = new Date();
+                const isToday = (liveSystemDate.getDate() === i && liveSystemDate.getMonth() === month && liveSystemDate.getFullYear() === year);
+                const focusBorder = isToday ? "border: 2px solid var(--primary-blue) !important; font-weight: bold;" : "";
+                
+                htmlBuffer += `
+                    <div style="padding: 8px; min-height: 55px; ${itemBackground} ${focusBorder} border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between;">
+                        <span style="${isToday ? 'color: var(--primary-blue); font-weight: bold;' : 'color: #333;'}">${i}</span>
+                        ${badgeMarkup}
+                    </div>
+                `;
+            }
+            
+            document.getElementById("calendarDaysGrid").innerHTML = htmlBuffer;
+        }
+        
+        drawCalendar(currentCalendarDate);
+        
+        document.getElementById("prevMonthBtn").addEventListener("click", function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            drawCalendar(currentCalendarDate);
+        });
+        
+        document.getElementById("nextMonthBtn").addEventListener("click", function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            drawCalendar(currentCalendarDate);
+        });
+    });
+</script>
+{% endblock %}

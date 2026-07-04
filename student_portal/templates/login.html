@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width: 400px; margin: 60px auto; padding: 30px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
+    <h2 style="color: var(--primary-blue); margin-top: 0; text-align: center;">Portal Authentication</h2>
+    <p style="text-align: center; color: #666; font-size: 14px;">Sign in to access your customized secure workspace platform.</p>
+    
+    <form method="post" style="margin-top: 25px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;">Account Username:</label>
+            <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;">Security Password:</label>
+            <input type="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">Authenticate Session</button>
+    </form>
+</div>
+{% endblock %}

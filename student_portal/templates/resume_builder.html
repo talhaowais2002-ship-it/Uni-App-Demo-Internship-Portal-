@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Online CV Builder Engine</h2>
+<p>Input and modify professional resume data stores directly mapping into global candidate profiles.</p>
+
+<div style="max-width: 700px; margin-top: 30px; border: 1px solid #ddd; padding: 30px; border-radius: 6px;">
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Professional Profile Summary:</label>
+            <textarea name="cv_summary" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_summary|default:'' }}</textarea>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Core Skills (Comma Separated):</label>
+            <input type="text" name="cv_skills" value="{{ profile.cv_skills|default:'' }}" placeholder="e.g., Python, SQL, Project Management" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Professional Experience Records:</label>
+            <textarea name="cv_experience" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_experience|default:'' }}</textarea>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Academic Education History:</label>
+            <textarea name="cv_education" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_education|default:'' }}</textarea>
+        </div>
+        <button type="submit" class="btn-primary">Save Profile Parameters</button>
+    </form>
+</div>
+{% endblock %}

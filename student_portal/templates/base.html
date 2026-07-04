@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Enterprise Jobs Portal</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+    <header>
+        <h1>Jobs Portal — Enterprise Dashboard</h1>
+    </header>
+
+    <div class="main-layout">
+        <aside class="admin-sidebar">
+            {% if user.is_authenticated %}
+                
+                {% if user.is_staff or user.is_superuser or user.userprofile.role == 'admin' %}
+                    <h3>Master Admin</h3>
+                    <ul>
+                        <li><a href="/admin/">⚙️ Site Settings & CMS</a></li>
+                        <li><a href="/admin/student_portal/trainingtrack/">💡 Manage Trainings</a></li>
+                        <li><a href="/admin/student_portal/university/">🎓 Manage Universities</a></li>
+                        <li><a href="{% url 'admin_manage' %}">⚡ Shift Verification</a></li>
+                        <li><a href="/admin/student_portal/companyprofile/">🏢 Manage Employers</a></li>
+                    </ul>
+
+                {% elif user.userprofile.role == 'company' %}
+                    <h3>Employer Console</h3>
+                    <ul>
+                        <li><a href="{% url 'company_dashboard' %}">📊 Dashboard & Postings</a></li>
+                        <li><a href="/admin/student_portal/internshipposting/add/">➕ Post Internship</a></li>
+                    </ul>
+
+                {% else %}
+                    <h3>Student Workspace</h3>
+                    <ul>
+                        <li><a href="{% url 'student_dashboard' %}">📊 Browse Internships</a></li>
+                        <li><a href="{% url 'resume_builder' %}">📄 Online CV Builder</a></li>
+                        <li><a href="{% url 'attendance_log' %}">⏰ Attendance Ledger</a></li>
+                    </ul>
+                {% endif %}
+                
+                <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <p style="font-size: 12px; color: #ffcc00; margin-bottom: 5px;">User: {{ user.username }}</p>
+                    <form action="{% url 'logout' %}" method="post" style="display: inline; margin: 0; padding: 0;">
+    {% csrf_token %}
+    <button type="submit" style="background: none; border: none; color: #ff4d4d; text-decoration: none; font-size: 13px; font-weight: bold; cursor: pointer; padding: 0; font-family: inherit;">✕ Sign Out</button>
+</form>
+                </div>
+
+            {% else %}
+                <h3>Guest Menu</h3>
+                <ul>
+                    <li><a href="{% url 'login' %}">🔑 Sign In</a></li>
+                </ul>
+            {% endif %}
+        </aside>
+
+        <main class="content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="badge-alert" style="border-left: 5px solid var(--accent-yellow);">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

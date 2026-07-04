@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Application Intake Form</h2>
+<p>Position: <strong>{{ posting.title }}</strong> at {{ posting.company.company_name }}</p>
+
+<div style="max-width: 600px; margin-top: 30px; border: 1px solid #ddd; padding: 30px; border-radius: 8px;">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Full Legal Name:</label>
+            <input type="text" name="student_name" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">University Name:</label>
+            <input type="text" name="university_name" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Contact Email Address:</label>
+            <input type="email" name="email" required style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+
+        <div style="margin-bottom: 20px; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 4px;">
+            <h4 style="margin: 0 0 15px 0; color: var(--primary-blue);">Required Verifiable Credentials (PDF/Images)</h4>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:3px;">1. Curriculum Vitae (CV File):</label>
+                <input type="file" name="cv_file" required>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:3px;">2. CPR / National Identity Card:</label>
+                <input type="file" name="cpr_file" required>
+            </div>
+            
+            <div style="margin-bottom: 12px;">
+                <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:3px;">3. Valid Passport Document:</label>
+                <input type="file" name="passport_file" required>
+            </div>
+            
+            <div>
+                <label style="display:block; font-size:13px; font-weight:bold; margin-bottom:3px;">4. Official University Student ID Card:</label>
+                <input type="file" name="uni_id_file" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Submit File Dossier</button>
+        <a href="{% url 'student_dashboard' %}" style="margin-left: 15px; color: #666; text-decoration: none;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

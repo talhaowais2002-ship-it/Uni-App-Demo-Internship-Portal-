@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Employer Dashboard</h2>
+<p>Track metrics, manage corporate listings, and monitor applicant shortlists.</p>
+
+<div style="margin-top: 30px;">
+    {% for posting in postings %}
+        <div style="border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; background: white;">
+            <div style="display: flex; justify-content: space-between; background: #fafafa; padding: 10px 15px; border-radius: 4px; border-bottom: 2px solid var(--primary-blue);">
+                <h3 style="margin: 0;">Vacancy: {{ posting.title }}</h3>
+                <span>📈 Total Active Views: <strong>{{ posting.views_count }}</strong></span>
+            </div>
+            
+            <h4 style="margin: 20px 0 10px 0;">Applicant Pipeline</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f4f4f4; text-align: left; font-size: 13px;">
+                        <th style="padding: 8px;">Applicant Name</th>
+                        <th style="padding: 8px;">Affiliated Institution</th>
+                        <th style="padding: 8px;">Secure Dossier Links</th>
+                        <th style="padding: 8px;">Status</th>
+                        <th style="padding: 8px; text-align: right;">Pipeline Action Controls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in posting.applications.all %}
+                        <tr style="border-bottom: 1px solid #eee; font-size: 14px;">
+                            <td style="padding: 8px; font-weight: bold;">{{ app.student_name }}</td>
+                            <td style="padding: 8px;">{{ app.university_name }}</td>
+                            <td style="padding: 8px;">
+                                <a href="{{ app.cv_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">📄 CV</a> | 
+                                <a href="{{ app.cpr_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">🆔 CPR</a> | 
+                                <a href="{{ app.passport_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">✈️ Pass</a> | 
+                                <a href="{{ app.uni_id_file.url }}" target="_blank" style="text-decoration:none;">🎓 ID</a>
+                            </td>
+                            <td style="padding: 8px;"><strong>{{ app.status }}</strong></td>
+                            <td style="padding: 8px; text-align: right;">
+                                <form method="post" style="margin: 0; display: inline-block;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="app_id" value="{{ app.id }}">
+                                    <button type="submit" name="action" value="shortlist" style="background:#1e7e34; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px; margin-right:5px;">✓ Shortlist</button>
+                                    <button type="submit" name="action" value="reject" style="background:#d93025; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px;">✕ Reject</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" style="padding: 10px; color:#777; font-style:italic;">No applicant dossiers filed for this opening yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% empty %}
+        <p>No active structural job placements registered to this account line.</p>
+    {% endfor %}
+</div>
+{% endblock %}
