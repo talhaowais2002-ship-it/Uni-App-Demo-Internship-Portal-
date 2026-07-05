@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Publish New Vacancy</h2>
+<p style="color: #666; margin-bottom: 25px;">Fill out the parameters below. All new postings require Coordinator validation before appearing to students.</p>
+
+<div style="max-width: 700px; border: 1px solid #ddd; padding: 30px; border-radius: 8px; background: #fff;">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Job Title / Position Name:</label>
+            <input type="text" name="title" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Target Specialization Track:</label>
+            <select name="track_id" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+                <option value="" disabled selected>-- Select System Track --</option>
+                {% for track in tracks %}
+                    <option value="{{ track.id }}">{{ track.category.name }} - {{ track.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Experience Level:</label>
+                <select name="level" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Work Nature:</label>
+                <select name="nature" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+                    <option value="Full-Time">Full-Time</option>
+                    <option value="Part-Time">Part-Time</option>
+                    <option value="Remote">Remote</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Location / City:</label>
+                <input type="text" name="location" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+            </div>
+            <div style="flex: 1;">
+                <label style="display:block; font-weight:bold; margin-bottom:5px;">Education Level Required:</label>
+                <input type="text" name="education_level" placeholder="e.g. 3rd Year Undergrad" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Stipend / Salary Range (Optional):</label>
+            <input type="text" name="salary_range" placeholder="e.g. Unpaid, or $500/month" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Detailed Description:</label>
+            <textarea name="description" rows="4" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display:block; font-weight:bold; margin-bottom:5px;">Candidate Requirements:</label>
+            <textarea name="requirements" rows="3" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing: border-box;"></textarea>
+        </div>
+
+        <button type="submit" style="background: var(--primary-blue); color: white; padding: 12px 25px; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer;">Submit Posting for Approval</button>
+        <a href="{% url 'company_dashboard' %}" style="margin-left: 15px; color: #666; text-decoration: none;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

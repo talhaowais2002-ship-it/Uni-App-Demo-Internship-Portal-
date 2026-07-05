@@ -144,22 +144,61 @@ def admin_manage_view(request):
 
 @login_required
 def company_dashboard_view(request):
-    profile = get_object_or_404(CompanyProfile, user=request.user)
-    my_postings = profile.postings.all()
+    """Employer Pipeline: Manage active postings and review student applicants."""
+    try:
+        profile = request.user.companyprofile
+    except:
+        messages.error(request, "Access Denied: Your account is not registered as an Internship Provider.")
+        return redirect('guest_home')
+        
+    my_postings = profile.postings.all().order_by('-created_at')
     
     if request.method == 'POST':
         action = request.POST.get('action')
         app_id = request.POST.get('app_id')
-        app = get_object_or_404(Application, id=app_id)
-        if action == 'shortlist':
-            app.status = 'Shortlisted'
-        elif action == 'reject':
-            app.status = 'Rejected'
-        app.save()
-        messages.success(request, "Applicant status modified successfully.")
-        return redirect('company_dashboard')
-        
+        if app_id and action:
+            app = get_object_or_404(Application, id=app_id)
+            # Security: Ensure this app belongs to a job owned by this specific company
+            if app.internship.company == profile:
+                if action == 'shortlist':
+                    app.status = 'Shortlisted'
+                elif action == 'reject':
+                    app.status = 'Rejected'
+                app.save()
+                messages.success(request, f"Applicant {app.student_name} marked as {app.status}.")
+            return redirect('company_dashboard')
+            
     return render(request, 'company_dashboard.html', {'postings': my_postings})
+
+@login_required
+def post_internship_view(request):
+    """Employer Pipeline: Submit a new vacancy to the system."""
+    try:
+        profile = request.user.companyprofile
+    except:
+        messages.error(request, "Access Denied: Employers only.")
+        return redirect('guest_home')
+
+    tracks = TrainingTrack.objects.filter(is_active=True)
+
+    if request.method == 'POST':
+        InternshipPosting.objects.create(
+            company=profile,
+            track_id=request.POST.get('track_id'),
+            title=request.POST.get('title'),
+            description=request.POST.get('description'),
+            requirements=request.POST.get('requirements'),
+            location=request.POST.get('location'),
+            level=request.POST.get('level'),
+            nature=request.POST.get('nature'),
+            salary_range=request.POST.get('salary_range'),
+            education_level=request.POST.get('education_level'),
+            is_approved=False # Sent to pending queue for Admin approval
+        )
+        messages.success(request, "Internship posted successfully! It is currently pending coordinator approval.")
+        return redirect('company_dashboard')
+
+    return render(request, 'post_internship.html', {'tracks': tracks})
 
 @login_required
 def resume_builder_view(request):

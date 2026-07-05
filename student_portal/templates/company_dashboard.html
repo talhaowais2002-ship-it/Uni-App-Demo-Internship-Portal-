@@ -3,11 +3,24 @@
 <h2>Employer Dashboard</h2>
 <p>Track metrics, manage corporate listings, and monitor applicant shortlists.</p>
 
+<!-- NEW: Post Vacancy Button -->
+<div style="margin-top: 25px; margin-bottom: 20px;">
+    <a href="{% url 'post_internship' %}" style="background: var(--primary-blue); color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">➕ Post New Vacancy</a>
+</div>
+
 <div style="margin-top: 30px;">
     {% for posting in postings %}
         <div style="border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; background: white;">
-            <div style="display: flex; justify-content: space-between; background: #fafafa; padding: 10px 15px; border-radius: 4px; border-bottom: 2px solid var(--primary-blue);">
-                <h3 style="margin: 0;">Vacancy: {{ posting.title }}</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px 15px; border-radius: 4px; border-bottom: 2px solid var(--primary-blue);">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    Vacancy: {{ posting.title }}
+                    <!-- NEW: Live Status Indicator -->
+                    {% if posting.is_approved %}
+                        <span style="font-size: 11px; background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 12px; font-weight: bold;">Approved & Live</span>
+                    {% else %}
+                        <span style="font-size: 11px; background: #fef7e0; color: #b06000; padding: 4px 8px; border-radius: 12px; font-weight: bold;">Pending Admin Approval</span>
+                    {% endif %}
+                </h3>
                 <span>📈 Total Active Views: <strong>{{ posting.views_count }}</strong></span>
             </div>
             

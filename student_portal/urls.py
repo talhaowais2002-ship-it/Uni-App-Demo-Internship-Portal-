@@ -9,6 +9,7 @@ urlpatterns = [
     path('attendance/log/', views.attendance_log_view, name='attendance_log'),
     path('admin-manage/', views.admin_manage_view, name='admin_manage'),
     path('company/dashboard/', views.company_dashboard_view, name='company_dashboard'),
+    path('company/post/', views.post_internship_view, name='post_internship'),
     path('seeker/resume/', views.resume_builder_view, name='resume_builder'),
     
     # Global Native Authentication Routes
