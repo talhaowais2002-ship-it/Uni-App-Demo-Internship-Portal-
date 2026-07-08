@@ -11,7 +11,7 @@ urlpatterns = [
     path('company/dashboard/', views.company_dashboard_view, name='company_dashboard'),
     path('company/post/', views.post_internship_view, name='post_internship'),
     path('seeker/resume/', views.resume_builder_view, name='resume_builder'),
-    
+   path('internship/apply/<int:posting_id>/', views.apply_internship_view, name='apply_internship'),
     # Global Native Authentication Routes
     path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='guest_home'), name='logout'),

@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile
 from django.contrib.auth.models import User
+import json
 
 def guest_home_view(request):
     if request.user.is_authenticated:
@@ -50,28 +51,61 @@ def student_dashboard_view(request):
     }
     return render(request, 'home.html', context)
 
+@login_required
 def apply_internship_view(request, posting_id):
+    # Fetch the specific internship posting
     posting = get_object_or_404(InternshipPosting, id=posting_id)
+    
+    # Check for duplicate applications using the student's email and internship record
+    existing_application = Application.objects.filter(email=request.user.email, internship=posting).exists()
+    
     if request.method == 'POST':
-        app = Application.objects.create(
+        if existing_application:
+            messages.warning(request, "You have already submitted an application for this vacancy.")
+            return redirect('student_dashboard')
+            
+        # Securely determine student metadata from the logged-in user session
+        student_name = request.user.get_full_name()
+        if not student_name or student_name.strip() == "":
+            student_name = request.user.username
+            
+        university_name = "University of Bahrain"  # Default fallback
+        try:
+            if hasattr(request.user, 'userprofile') and request.user.userprofile:
+                prof = request.user.userprofile
+                if hasattr(prof, 'university') and prof.university:
+                    university_name = str(prof.university)
+        except Exception:
+            pass
+        
+        # Commit record to storage matching your exact database schema fields
+        Application.objects.create(
             internship=posting,
-            student_name=request.POST.get('student_name'),
-            university_name=request.POST.get('university_name'),
-            email=request.POST.get('email'),
+            student_name=student_name,
+            university_name=university_name,
+            email=request.user.email,
             cv_file=request.FILES.get('cv_file'),
             cpr_file=request.FILES.get('cpr_file'),
             passport_file=request.FILES.get('passport_file'),
             uni_id_file=request.FILES.get('uni_id_file'),
+            status='Pending Review'
         )
+        
+        # Track active vacancy metrics
         posting.views_count += 1
         posting.save()
-        messages.success(request, "Application submitted successfully with all required documents!")
-        return redirect('guest_home' if not request.user.is_authenticated else 'student_dashboard')
-    return render(request, 'apply.html', {'posting': posting})
+        
+        messages.success(request, "Your placement application was submitted successfully with all verified documents!")
+        return redirect('student_dashboard')
+
+    context = {
+        'posting': posting,
+        'existing_application': existing_application
+    }
+    return render(request, 'apply_internship.html', context)
 
 @login_required
 def attendance_log_view(request):
-    # Workflow A processing engine
     today = timezone.now().date()
     record = AttendanceRecord.objects.filter(user=request.user, date=today).last()
     
@@ -98,7 +132,6 @@ def attendance_log_view(request):
     verified_hours = sum(r.hours_worked for r in my_shifts if r.is_verified)
     
     # Secure Calendar Serialization Engine
-    import json
     calendar_data = {}
     for shift in my_shifts:
         if shift.date:
@@ -113,21 +146,12 @@ def attendance_log_view(request):
         'my_shifts': my_shifts,
         'verified_hours': verified_hours,
         'target_hours': 240.0,
-        'calendar_data_json': json.dumps(calendar_data)  # Safely passes logs to the frontend
-    }
-    return render(request, 'attendance_log.html', context)
-    
-    context = {
-        'record': record,
-        'my_shifts': my_shifts,
-        'verified_hours': verified_hours,
-        'target_hours': 240.0
+        'calendar_data_json': json.dumps(calendar_data)
     }
     return render(request, 'attendance_log.html', context)
 
 @login_required
 def admin_manage_view(request):
-    # Workflow B processing audit queue
     if not (request.user.is_staff or request.user.is_superuser):
         return redirect('guest_home')
         
@@ -147,7 +171,7 @@ def company_dashboard_view(request):
     """Employer Pipeline: Manage active postings and review student applicants."""
     try:
         profile = request.user.companyprofile
-    except:
+    except Exception:
         messages.error(request, "Access Denied: Your account is not registered as an Internship Provider.")
         return redirect('guest_home')
         
@@ -158,7 +182,6 @@ def company_dashboard_view(request):
         app_id = request.POST.get('app_id')
         if app_id and action:
             app = get_object_or_404(Application, id=app_id)
-            # Security: Ensure this app belongs to a job owned by this specific company
             if app.internship.company == profile:
                 if action == 'shortlist':
                     app.status = 'Shortlisted'
@@ -175,7 +198,7 @@ def post_internship_view(request):
     """Employer Pipeline: Submit a new vacancy to the system."""
     try:
         profile = request.user.companyprofile
-    except:
+    except Exception:
         messages.error(request, "Access Denied: Employers only.")
         return redirect('guest_home')
 
@@ -193,7 +216,7 @@ def post_internship_view(request):
             nature=request.POST.get('nature'),
             salary_range=request.POST.get('salary_range'),
             education_level=request.POST.get('education_level'),
-            is_approved=False # Sent to pending queue for Admin approval
+            is_approved=False
         )
         messages.success(request, "Internship posted successfully! It is currently pending coordinator approval.")
         return redirect('company_dashboard')
