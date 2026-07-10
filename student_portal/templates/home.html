@@ -2,9 +2,6 @@
 {% block content %}
 
 {% if not user.is_authenticated %}
-    <!-- ========================================== -->
-    <!-- GUEST VIEW: What unauthenticated users see -->
-    <!-- ========================================== -->
     <div style="margin-top: 20px; text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
         <h2 style="color: var(--primary-blue); margin-bottom: 15px; font-size: 28px;">Global Vision Solutions Portal</h2>
         <p style="color: #666; font-size: 16px; max-width: 600px; margin: 0 auto 30px auto; line-height: 1.5;">
@@ -16,15 +13,68 @@
     </div>
 
 {% else %}
-    <!-- ========================================== -->
-    <!-- STUDENT VIEW: What logged-in students see  -->
-    <!-- ========================================== -->
     <div style="margin-bottom: 40px;">
         <h2>Internship Opportunities</h2>
         <p style="color: #666;">Browse available openings, apply, and monitor your application status.</p>
     </div>
 
-    <!-- LEVEL 1: Top Level Categories -->
+    <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 25px; margin-bottom: 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+        <h3 style="margin-top: 0; margin-bottom: 15px; color: #222; display: flex; align-items: center; gap: 8px;">
+            📂 My Submitted Internship Dossiers
+        </h3>
+        
+        {% if my_applications %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 12px 10px; color: #555;">Position Title</th>
+                            <th style="padding: 12px 10px; color: #555;">Company / Organization</th>
+                            <th style="padding: 12px 10px; color: #555;">Submission Date</th>
+                            <th style="padding: 12px 10px; color: #555; text-align: right;">Review Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in my_applications %}
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 10px; font-weight: bold; color: var(--primary-blue);">
+                                    {{ app.internship.title }}
+                                </td>
+                                
+                                <td style="padding: 12px 10px; color: #444;">
+                                    {{ app.internship.company.company_name|default:"Partner Employer" }}
+                                </td>
+                                
+                                <td style="padding: 12px 10px; color: #666; font-size: 13px;">
+                                    Filed for Track Evaluation
+                                </td>
+                                
+                                <td style="padding: 12px 10px; text-align: right;">
+                                    {% if app.status == 'Shortlisted' %}
+                                        <span style="background: #e6f4ea; color: #137333; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
+                                            ✓ Shortlisted / Hired
+                                        </span>
+                                    {% elif app.status == 'Rejected' %}
+                                        <span style="background: #fce8e6; color: #c5221f; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
+                                            ✕ Position Filled
+                                        </span>
+                                    {% else %}
+                                        <span style="background: #f1f3f4; color: #5f6368; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
+                                            ⏳ Pending Review
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="background: #fafafa; border: 1px dashed #ccc; padding: 20px; text-align: center; border-radius: 6px; color: #777;">
+                ℹ You haven't filed any operational applications yet. Select a training track below to find active vacancies.
+            </div>
+        {% endif %}
+    </div>
     <h3 style="margin-bottom: 5px;">Select an Industry Sector</h3>
     <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Navigate down the matrix to look for corporate openings.</p>
 
@@ -32,14 +82,12 @@
         {% for cat in categories %}
             <a href="?category={{ cat.id }}" style="text-decoration: none; color: inherit;">
                 {% if current_category and current_category.id == cat.id %}
-                    <!-- Active State -->
                     <div style="border: 2px solid var(--primary-blue); border-radius: 8px; padding: 25px; text-align: center; background: #f0f4fc;">
                         <div style="font-size: 30px; margin-bottom: 10px;">{{ cat.icon|default:"📁" }}</div>
                         <h4 style="margin: 0 0 10px 0; color: var(--primary-blue);">{{ cat.name }}</h4>
                         <span style="font-size: 12px; color: #888;">Click to explore specific specialization tracks.</span>
                     </div>
                 {% else %}
-                    <!-- Inactive State -->
                     <div style="border: 2px solid #ddd; border-radius: 8px; padding: 25px; text-align: center; background: white;">
                         <div style="font-size: 30px; margin-bottom: 10px;">{{ cat.icon|default:"📁" }}</div>
                         <h4 style="margin: 0 0 10px 0; color: #333;">{{ cat.name }}</h4>
@@ -52,7 +100,6 @@
         {% endfor %}
     </div>
 
-    <!-- LEVEL 2: Nested Training Tracks -->
     {% if tracks %}
         <h3 style="border-top: 1px solid #ddd; padding-top: 30px; margin-top: 20px;">Available Tracks in {{ current_category.name }}</h3>
         
@@ -60,13 +107,11 @@
             {% for track in tracks %}
                 <a href="?category={{ current_category.id }}&track={{ track.id }}" style="text-decoration: none; color: inherit;">
                     {% if current_track and current_track.id == track.id %}
-                        <!-- Active State -->
                         <div style="border: 1px solid var(--primary-blue); border-left: 5px solid var(--primary-blue); border-radius: 6px; padding: 20px; background: #f8faff;">
                             <h4 style="margin: 0 0 5px 0;">{{ track.title }}</h4>
                             <p style="margin: 0; font-size: 13px; color: #666;">{{ track.description|truncatewords:15 }}</p>
                         </div>
                     {% else %}
-                        <!-- Inactive State -->
                         <div style="border: 1px solid #ccc; border-left: 5px solid #888; border-radius: 6px; padding: 20px; background: white;">
                             <h4 style="margin: 0 0 5px 0;">{{ track.title }}</h4>
                             <p style="margin: 0; font-size: 13px; color: #666;">{{ track.description|truncatewords:15 }}</p>
@@ -79,7 +124,6 @@
         </div>
     {% endif %}
 
-    <!-- LEVEL 3: Live Internship Postings -->
     {% if postings %}
         <div style="background: #fdfdfd; border: 1px solid #e9ecef; border-radius: 8px; padding: 25px; margin-bottom: 40px;">
             <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--primary-blue);">Live Vacancies: {{ current_track.title }}</h3>

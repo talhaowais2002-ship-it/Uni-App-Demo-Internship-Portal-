@@ -1,28 +1,92 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Online CV Builder Engine</h2>
-<p>Input and modify professional resume data stores directly mapping into global candidate profiles.</p>
 
-<div style="max-width: 700px; margin-top: 30px; border: 1px solid #ddd; padding: 30px; border-radius: 6px;">
-    <form method="post">
-        {% csrf_token %}
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:bold; margin-bottom:5px;">Professional Profile Summary:</label>
-            <textarea name="cv_summary" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_summary|default:'' }}</textarea>
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:bold; margin-bottom:5px;">Core Skills (Comma Separated):</label>
-            <input type="text" name="cv_skills" value="{{ profile.cv_skills|default:'' }}" placeholder="e.g., Python, SQL, Project Management" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:bold; margin-bottom:5px;">Professional Experience Records:</label>
-            <textarea name="cv_experience" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_experience|default:'' }}</textarea>
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:bold; margin-bottom:5px;">Academic Education History:</label>
-            <textarea name="cv_education" rows="4" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">{{ profile.cv_education|default:'' }}</textarea>
-        </div>
-        <button type="submit" class="btn-primary">Save Profile Parameters</button>
-    </form>
+<div style="margin-bottom: 30px;">
+    <!-- Back to Dashboard Link -->
+    <a href="{% url 'student_dashboard' %}" style="text-decoration: none; color: var(--primary-blue); font-weight: bold; display: inline-block; margin-bottom: 15px;">&larr; Back to Dashboard</a>
+    
+    <h2 style="color: #222; margin: 0 0 10px 0; font-size: 28px;">Online CV Builder</h2>
+    <p style="color: #666; font-size: 16px; margin: 0;">Build a comprehensive digital profile to supplement your file uploads.</p>
 </div>
+
+<!-- Success Message Alert -->
+{% if messages %}
+    <div style="margin-bottom: 25px;">
+        {% for message in messages %}
+            <div style="background: #e6f4ea; color: #137333; padding: 15px 20px; border-radius: 6px; border: 1px solid #c3e6cb; font-weight: bold;">
+                ✓ {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div style="display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start;">
+    
+    <!-- LEFT COLUMN: The Builder Form -->
+    <div style="flex: 1; min-width: 350px; background: white; padding: 30px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Professional Summary -->
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #333;">Professional Summary</label>
+                <textarea name="cv_summary" rows="4" placeholder="Briefly describe your academic focus, career goals, and what makes you a strong candidate..." style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ profile.cv_summary|default:"" }}</textarea>
+            </div>
+
+            <!-- Technical & Soft Skills -->
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #333;">Core Skills & Technologies</label>
+                <textarea name="cv_skills" rows="3" placeholder="e.g., Python, Django, Machine Learning, UI/UX Design, Team Leadership..." style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ profile.cv_skills|default:"" }}</textarea>
+            </div>
+
+            <!-- Academic & Project Experience -->
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #333;">Relevant Experience & Projects</label>
+                <textarea name="cv_experience" rows="5" placeholder="Detail your practicum projects, thesis work, or any prior internships. Include quantifiable metrics if possible." style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ profile.cv_experience|default:"" }}</textarea>
+            </div>
+
+            <!-- Education Details -->
+            <div style="margin-bottom: 30px;">
+                <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #333;">Education & Certifications</label>
+                <textarea name="cv_education" rows="3" placeholder="University Name, Degree Track, Expected Graduation, and Key Certifications." style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ profile.cv_education|default:"" }}</textarea>
+            </div>
+
+            <button type="submit" style="background: var(--primary-blue, #0056b3); color: white; border: none; padding: 14px 30px; font-size: 16px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; transition: background 0.2s;">
+                Save Digital CV
+            </button>
+        </form>
+    </div>
+
+    <!-- RIGHT COLUMN: Guidelines & Tips -->
+    <div style="flex: 0 1 350px; background: #f8faff; padding: 25px; border-radius: 8px; border: 1px solid #dce7f7;">
+        <h3 style="margin-top: 0; color: var(--primary-blue, #0056b3); font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            💡 Profile Building Tips
+        </h3>
+        
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #333;">Be Specific</h4>
+            <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">Instead of saying "good at coding," mention specific frameworks and languages you have mastered.</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #333;">Highlight Academic Projects</h4>
+            <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">If you lack formal job experience, your thesis, practicum work, and major university assignments are perfect alternatives.</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #333;">Keep it Clean</h4>
+            <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.5;">Use bullet points (like - or *) in your text boxes to make your experience and skills easy for employers to scan quickly.</p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #dce7f7; margin: 25px 0;">
+        
+        <div style="text-align: center;">
+            <span style="display: inline-block; background: white; border: 1px solid #ccc; padding: 10px 15px; border-radius: 4px; font-size: 13px; color: #555; font-weight: bold;">
+                Profile Completion: {{ profile.cv_summary|yesno:"Active,Pending" }}
+            </span>
+        </div>
+    </div>
+
+</div>
+
 {% endblock %}

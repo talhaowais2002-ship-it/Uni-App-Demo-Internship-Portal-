@@ -3,7 +3,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile
+from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile, ShiftExcuse
 from django.contrib.auth.models import User
 import json
 
@@ -38,7 +38,6 @@ def student_dashboard_view(request):
         current_track = get_object_or_404(TrainingTrack, id=selected_track_id)
         postings = current_track.postings.filter(is_approved=True)
         
-    # Get applicant tracking updates
     my_applications = Application.objects.filter(email=request.user.email)
     
     context = {
@@ -53,10 +52,7 @@ def student_dashboard_view(request):
 
 @login_required
 def apply_internship_view(request, posting_id):
-    # Fetch the specific internship posting
     posting = get_object_or_404(InternshipPosting, id=posting_id)
-    
-    # Check for duplicate applications using the student's email and internship record
     existing_application = Application.objects.filter(email=request.user.email, internship=posting).exists()
     
     if request.method == 'POST':
@@ -64,12 +60,11 @@ def apply_internship_view(request, posting_id):
             messages.warning(request, "You have already submitted an application for this vacancy.")
             return redirect('student_dashboard')
             
-        # Securely determine student metadata from the logged-in user session
         student_name = request.user.get_full_name()
         if not student_name or student_name.strip() == "":
             student_name = request.user.username
             
-        university_name = "University of Bahrain"  # Default fallback
+        university_name = "University of Bahrain"
         try:
             if hasattr(request.user, 'userprofile') and request.user.userprofile:
                 prof = request.user.userprofile
@@ -78,7 +73,6 @@ def apply_internship_view(request, posting_id):
         except Exception:
             pass
         
-        # Commit record to storage matching your exact database schema fields
         Application.objects.create(
             internship=posting,
             student_name=student_name,
@@ -91,7 +85,6 @@ def apply_internship_view(request, posting_id):
             status='Pending Review'
         )
         
-        # Track active vacancy metrics
         posting.views_count += 1
         posting.save()
         
@@ -126,20 +119,45 @@ def attendance_log_view(request):
                 messages.success(request, f"Clocked out. Shift duration: {record.hours_worked} hours.")
             else:
                 messages.error(request, "No active clock-in event found for today.")
+        elif action == 'submit_excuse':
+            excuse_date_str = request.POST.get('excuse_date')
+            excuse_reason = request.POST.get('excuse_reason')
+            if excuse_date_str and excuse_reason:
+                from datetime import datetime
+                try:
+                    excuse_date = datetime.strptime(excuse_date_str, '%Y-%m-%d').date()
+                    ShiftExcuse.objects.create(user=request.user, date=excuse_date, reason=excuse_reason)
+                    messages.success(request, f"Excuse formally submitted for {excuse_date}.")
+                except Exception as e:
+                    messages.error(request, "Invalid date format submitted.")
         return redirect('attendance_log')
         
     my_shifts = AttendanceRecord.objects.filter(user=request.user).order_by('-date')
-    verified_hours = sum(r.hours_worked for r in my_shifts if r.is_verified)
+    my_excuses = ShiftExcuse.objects.filter(user=request.user)
+    verified_hours = sum(r.hours_worked for r in my_shifts if r.is_verified and r.hours_worked)
     
-    # Secure Calendar Serialization Engine
     calendar_data = {}
     for shift in my_shifts:
         if shift.date:
             date_str = shift.date.strftime('%Y-%m-%d')
-            calendar_data[date_str] = {
-                'hours': shift.hours_worked,
-                'verified': shift.is_verified
-            }
+            if date_str in calendar_data:
+                calendar_data[date_str]['hours'] = round(calendar_data[date_str].get('hours', 0) + (shift.hours_worked or 0), 2)
+            else:
+                calendar_data[date_str] = {
+                    'hours': shift.hours_worked or 0,
+                    'status': 'present',
+                    'verified': shift.is_verified
+                }
+                
+    for excuse in my_excuses:
+        if excuse.date:
+            date_str = excuse.date.strftime('%Y-%m-%d')
+            if date_str not in calendar_data:
+                calendar_data[date_str] = {
+                    'hours': 0,
+                    'status': 'excused',
+                    'verified': excuse.is_approved
+                }
     
     context = {
         'record': record,
@@ -168,7 +186,7 @@ def admin_manage_view(request):
 
 @login_required
 def company_dashboard_view(request):
-    """Employer Pipeline: Manage active postings and review student applicants."""
+    """Employer Pipeline: Manage active postings, review applicants, and track hired interns."""
     try:
         profile = request.user.companyprofile
     except Exception:
@@ -191,11 +209,34 @@ def company_dashboard_view(request):
                 messages.success(request, f"Applicant {app.student_name} marked as {app.status}.")
             return redirect('company_dashboard')
             
-    return render(request, 'company_dashboard.html', {'postings': my_postings})
+    # --- NEW: Fetch Hired Interns & Attendance ---
+    hired_apps = Application.objects.filter(internship__company=profile, status='Shortlisted')
+    hired_interns_data = []
+    
+    for app in hired_apps:
+        student_user = User.objects.filter(email=app.email).first()
+        if student_user:
+            attendances = AttendanceRecord.objects.filter(user=student_user).order_by('-date')
+            total_verified_hours = sum(r.hours_worked for r in attendances if r.is_verified and r.hours_worked)
+            excuses = ShiftExcuse.objects.filter(user=student_user).order_by('-date')
+            
+            hired_interns_data.append({
+                'application': app,
+                'student_name': app.student_name,
+                'university': app.university_name,
+                'total_hours': total_verified_hours,
+                'recent_shifts': attendances[:3], # Only show the last 3 shifts on the dashboard
+                'recent_excuses': excuses[:2],    # Only show the last 2 excuses on the dashboard
+            })
+            
+    context = {
+        'postings': my_postings,
+        'hired_interns_data': hired_interns_data
+    }
+    return render(request, 'company_dashboard.html', context)
 
 @login_required
 def post_internship_view(request):
-    """Employer Pipeline: Submit a new vacancy to the system."""
     try:
         profile = request.user.companyprofile
     except Exception:

@@ -150,4 +150,27 @@
         });
     });
 </script>
+<div style="margin-top: 30px; border: 1px solid #ddd; border-radius: 6px; padding: 20px; background: white; margin-bottom: 40px;">
+    <h3 style="margin-top: 0; color: #333;">Submit Shift Excuse</h3>
+    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Missed a scheduled shift? Submit a formal excuse to your employer/coordinator for review.</p>
+    
+    <form method="POST" style="max-width: 500px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="submit_excuse">
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px;">Date of Absence:</label>
+            <input type="date" name="excuse_date" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px;">Reason / Justification:</label>
+            <textarea name="excuse_reason" rows="3" required placeholder="Briefly explain the reason for your absence..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;"></textarea>
+        </div>
+        
+        <button type="submit" style="background: #d93025; color: white; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+            Submit Excuse
+        </button>
+    </form>
+</div>
 {% endblock %}

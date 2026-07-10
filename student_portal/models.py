@@ -44,6 +44,16 @@ class UserProfile(models.Model):
     training_track = models.ForeignKey(TrainingTrack, on_delete=models.SET_NULL, null=True, blank=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
 
+class ShiftExcuse(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    reason = models.TextField()
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}"
+
     # Online CV Builder Data Store Fields
     cv_summary = models.TextField(blank=True, null=True)
     cv_skills = models.TextField(blank=True, null=True, help_text="Comma separated values")
