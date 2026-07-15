@@ -3,7 +3,6 @@
 <h2>Employer Dashboard</h2>
 <p>Track metrics, manage corporate listings, and monitor applicant shortlists.</p>
 
-<!-- NEW: Post Vacancy Button -->
 <div style="margin-top: 25px; margin-bottom: 20px;">
     <a href="{% url 'post_internship' %}" style="background: var(--primary-blue); color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">➕ Post New Vacancy</a>
 </div>
@@ -14,7 +13,6 @@
             <div style="display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px 15px; border-radius: 4px; border-bottom: 2px solid var(--primary-blue);">
                 <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
                     Vacancy: {{ posting.title }}
-                    <!-- NEW: Live Status Indicator -->
                     {% if posting.is_approved %}
                         <span style="font-size: 11px; background: #e6f4ea; color: #137333; padding: 4px 8px; border-radius: 12px; font-weight: bold;">Approved & Live</span>
                     {% else %}
@@ -67,9 +65,6 @@
     {% endfor %}
 </div>
 
-<!-- ========================================== -->
-<!-- NEW: ACTIVE INTERNS TRACKING PANEL         -->
-<!-- ========================================== -->
 <div style="margin-top: 50px; border-top: 2px solid #e9ecef; padding-top: 30px; margin-bottom: 50px;">
     <h2>Active Interns Tracker</h2>
     <p style="color: #666;">Monitor attendance, verified hours, and formal excuses for your hired students.</p>
@@ -79,17 +74,14 @@
             {% for intern in hired_interns_data %}
                 <div style="border: 1px solid #ddd; border-radius: 8px; background: white; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
                     
-                    <!-- Intern Header -->
                     <h3 style="margin: 0 0 5px 0; color: var(--primary-blue); font-size: 20px;">{{ intern.student_name }}</h3>
                     <p style="margin: 0 0 20px 0; font-size: 14px; color: #555;">🎓 {{ intern.university }}</p>
                     
-                    <!-- Hours Progress Box -->
                     <div style="background: #f8faff; border: 1px solid #dce7f7; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center;">
                         <span style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Total Verified Hours</span><br>
                         <span style="font-size: 28px; font-weight: bold; color: #222;">{{ intern.total_hours|default:"0" }}</span> <span style="font-size: 14px; color: #777;">/ 240</span>
                     </div>
 
-                    <!-- Recent Shifts -->
                     <h4 style="margin: 0 0 10px 0; font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; color: #333;">Recent Shifts</h4>
                     {% if intern.recent_shifts %}
                         <ul style="list-style: none; padding: 0; margin: 0 0 20px 0; font-size: 14px;">
@@ -108,7 +100,6 @@
                         <p style="font-size: 13px; color: #777; font-style: italic; margin-bottom: 20px;">No shifts logged by this intern yet.</p>
                     {% endif %}
 
-                    <!-- Recent Excuses -->
                     <h4 style="margin: 0 0 10px 0; font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; color: #333;">Absences & Excuses</h4>
                     {% if intern.recent_excuses %}
                         <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px;">
@@ -119,7 +110,45 @@
                             {% endfor %}
                         </ul>
                     {% else %}
-                        <p style="font-size: 13px; color: #1e7e34; font-weight: bold; margin: 0;">✓ Perfect Attendance</p>
+                        <p style="font-size: 13px; color: #1e7e34; font-weight: bold; margin: 0; margin-bottom: 20px;">✓ Perfect Attendance</p>
+                    {% endif %}
+
+                    <h4 style="margin: 20px 0 10px 0; font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; color: #333;">Supervisor Evaluation</h4>
+                    
+                    {% if intern.application.evaluation %}
+                        <div style="background: #e6f4ea; border: 1px solid #cce8d6; padding: 10px; border-radius: 4px; text-align: center;">
+                            <span style="color: #137333; font-weight: bold; font-size: 13px;">✓ Final Evaluation Submitted</span>
+                            <div style="font-size: 12px; color: #555; margin-top: 5px;">
+                                Att: {{ intern.application.evaluation.attendance_score }}/10 | 
+                                Team: {{ intern.application.evaluation.teamwork_score }}/10 | 
+                                Task: {{ intern.application.evaluation.performance_score }}/10
+                            </div>
+                        </div>
+                    {% else %}
+                        <form method="post" style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #e0e0e0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="evaluate_intern">
+                            <input type="hidden" name="app_id" value="{{ intern.application.id }}">
+                            
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 11px; color: #666; font-weight: bold;">ATTENDANCE</label>
+                                    <input type="number" name="attendance" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 11px; color: #666; font-weight: bold;">TEAMWORK</label>
+                                    <input type="number" name="teamwork" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 11px; color: #666; font-weight: bold;">TASKS</label>
+                                    <input type="number" name="performance" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" style="background: #1a73e8; color: white; border: none; padding: 8px; border-radius: 4px; width: 100%; cursor: pointer; font-size: 13px; font-weight: bold;">
+                                Submit Final Grades
+                            </button>
+                        </form>
                     {% endif %}
                     
                 </div>

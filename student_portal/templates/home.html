@@ -31,29 +31,67 @@
                             <th style="padding: 12px 10px; color: #555;">Position Title</th>
                             <th style="padding: 12px 10px; color: #555;">Company / Organization</th>
                             <th style="padding: 12px 10px; color: #555;">Submission Date</th>
-                            <th style="padding: 12px 10px; color: #555; text-align: right;">Review Status</th>
+                            <th style="padding: 12px 10px; color: #555; text-align: right;">Review Status & Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for app in my_applications %}
                             <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 12px 10px; font-weight: bold; color: var(--primary-blue);">
+                                <td style="padding: 12px 10px; font-weight: bold; color: var(--primary-blue); vertical-align: top;">
                                     {{ app.internship.title }}
                                 </td>
                                 
-                                <td style="padding: 12px 10px; color: #444;">
+                                <td style="padding: 12px 10px; color: #444; vertical-align: top;">
                                     {{ app.internship.company.company_name|default:"Partner Employer" }}
                                 </td>
                                 
-                                <td style="padding: 12px 10px; color: #666; font-size: 13px;">
+                                <td style="padding: 12px 10px; color: #666; font-size: 13px; vertical-align: top;">
                                     Filed for Track Evaluation
                                 </td>
                                 
-                                <td style="padding: 12px 10px; text-align: right;">
+                                <td style="padding: 12px 10px; text-align: right; vertical-align: top;">
                                     {% if app.status == 'Shortlisted' %}
-                                        <span style="background: #e6f4ea; color: #137333; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
-                                            ✓ Shortlisted / Hired
-                                        </span>
+                                        <div style="margin-bottom: 8px;">
+                                            <span style="background: #e6f4ea; color: #137333; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
+                                                ✓ Shortlisted / Hired
+                                            </span>
+                                        </div>
+                                        
+                                        <!-- ========================================== -->
+                                        <!-- NEW: Company Review System UI              -->
+                                        <!-- ========================================== -->
+                                        {% if app.company_review %}
+                                            <div style="font-size: 12px; color: #555; background: #f8f9fa; padding: 10px; border-radius: 6px; display: inline-block; text-align: left; border: 1px solid #e9ecef; margin-top: 5px; max-width: 220px;">
+                                                <div style="color: #fbbc05; font-size: 15px; margin-bottom: 4px;">
+                                                    {% if app.company_review.rating == 5 %}⭐⭐⭐⭐⭐{% elif app.company_review.rating == 4 %}⭐⭐⭐⭐{% elif app.company_review.rating == 3 %}⭐⭐⭐{% elif app.company_review.rating == 2 %}⭐⭐{% else %}⭐{% endif %}
+                                                </div>
+                                                <i style="line-height: 1.4;">"{{ app.company_review.comments }}"</i>
+                                            </div>
+                                        {% else %}
+                                            <form method="post" style="margin-top: 10px; text-align: left; background: #fdfdfd; border: 1px solid #e0e0e0; padding: 12px; border-radius: 6px; min-width: 220px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="submit_review">
+                                                <input type="hidden" name="app_id" value="{{ app.id }}">
+                                                
+                                                <label style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 5px;">RATE EMPLOYER EXPERIENCE:</label>
+                                                <select name="rating" required style="width: 100%; padding: 6px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; background: white;">
+                                                    <option value="" disabled selected>Select Rating...</option>
+                                                    <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
+                                                    <option value="4">⭐⭐⭐⭐ (Good)</option>
+                                                    <option value="3">⭐⭐⭐ (Average)</option>
+                                                    <option value="2">⭐⭐ (Poor)</option>
+                                                    <option value="1">⭐ (Terrible)</option>
+                                                </select>
+                                                
+                                                <textarea name="comments" required placeholder="Describe your experience with this company..." style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; margin-bottom: 8px; resize: vertical; min-height: 50px; box-sizing: border-box; font-family: inherit;"></textarea>
+                                                
+                                                <button type="submit" style="background: #1a73e8; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                                                    Submit Review
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <!-- ========================================== -->
+
                                     {% elif app.status == 'Rejected' %}
                                         <span style="background: #fce8e6; color: #c5221f; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block;">
                                             ✕ Position Filled
@@ -75,6 +113,7 @@
             </div>
         {% endif %}
     </div>
+    
     <h3 style="margin-bottom: 5px;">Select an Industry Sector</h3>
     <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Navigate down the matrix to look for corporate openings.</p>
 

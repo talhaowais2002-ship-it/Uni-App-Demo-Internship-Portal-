@@ -3,7 +3,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile, ShiftExcuse
+from datetime import timedelta
+from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile, ShiftExcuse, SupervisorEvaluation, CompanyReview
 from django.contrib.auth.models import User
 import json
 
@@ -38,6 +39,41 @@ def student_dashboard_view(request):
         current_track = get_object_or_404(TrainingTrack, id=selected_track_id)
         postings = current_track.postings.filter(is_approved=True)
         
+    # ==========================================
+    # NEW: Catch the Student's Company Review
+    # ==========================================
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'submit_review':
+            app_id = request.POST.get('app_id')
+            rating = request.POST.get('rating')
+            comments = request.POST.get('comments')
+            
+            # Security check: Ensure this application actually belongs to the logged-in student
+            app = get_object_or_404(Application, id=app_id, email=request.user.email)
+            
+            CompanyReview.objects.create(
+                application=app,
+                rating=rating,
+                comments=comments
+            )
+            messages.success(request, "Thank you! Your feedback about this internship has been recorded.")
+            return redirect('student_dashboard')
+
+    # ==========================================
+    # ADVISOR REQUIREMENT: 5-Day Auto-Expiration
+    # ==========================================
+    cutoff_date = timezone.now() - timedelta(days=5)
+    
+    expired_apps = Application.objects.filter(
+        email=request.user.email,
+        status='Pending',
+        applied_at__lt=cutoff_date
+    )
+    
+    expired_apps.update(status='Cancelled')
+    # ==========================================
+        
     my_applications = Application.objects.filter(email=request.user.email)
     
     context = {
@@ -58,6 +94,30 @@ def apply_internship_view(request, posting_id):
     if request.method == 'POST':
         if existing_application:
             messages.warning(request, "You have already submitted an application for this vacancy.")
+            return redirect('student_dashboard')
+            
+        pending_count = Application.objects.filter(
+            email=request.user.email, 
+            status='Pending Review'
+        ).count()
+
+        if pending_count >= 3:
+            messages.error(
+                request, 
+                "Application limit reached: You currently have 3 pending applications. Please wait for a company response before applying to new vacancies."
+            )
+            return redirect('student_dashboard')
+            
+        hired_count = Application.objects.filter(
+            internship=posting,
+            status='Shortlisted' 
+        ).count()
+        
+        if hired_count >= posting.max_interns:
+            messages.error(
+                request, 
+                f"We're sorry, this vacancy has reached its maximum capacity of {posting.max_interns} interns and is no longer accepting applications."
+            )
             return redirect('student_dashboard')
             
         student_name = request.user.get_full_name()
@@ -201,12 +261,30 @@ def company_dashboard_view(request):
         if app_id and action:
             app = get_object_or_404(Application, id=app_id)
             if app.internship.company == profile:
-                if action == 'shortlist':
-                    app.status = 'Shortlisted'
-                elif action == 'reject':
-                    app.status = 'Rejected'
-                app.save()
-                messages.success(request, f"Applicant {app.student_name} marked as {app.status}.")
+                
+                # Handling Shortlist/Reject 
+                if action in ['shortlist', 'reject']:
+                    if action == 'shortlist':
+                        app.status = 'Shortlisted'
+                    elif action == 'reject':
+                        app.status = 'Rejected'
+                    app.save()
+                    messages.success(request, f"Applicant {app.student_name} marked as {app.status}.")
+                
+                # Handling the NEW Evaluation Form
+                elif action == 'evaluate_intern':
+                    att_score = request.POST.get('attendance')
+                    team_score = request.POST.get('teamwork')
+                    perf_score = request.POST.get('performance')
+                    
+                    SupervisorEvaluation.objects.create(
+                        application=app,
+                        attendance_score=att_score,
+                        teamwork_score=team_score,
+                        performance_score=perf_score
+                    )
+                    messages.success(request, f"Official grading submitted for {app.student_name}.")
+                    
             return redirect('company_dashboard')
             
     # --- NEW: Fetch Hired Interns & Attendance ---
@@ -225,8 +303,8 @@ def company_dashboard_view(request):
                 'student_name': app.student_name,
                 'university': app.university_name,
                 'total_hours': total_verified_hours,
-                'recent_shifts': attendances[:3], # Only show the last 3 shifts on the dashboard
-                'recent_excuses': excuses[:2],    # Only show the last 2 excuses on the dashboard
+                'recent_shifts': attendances[:3],
+                'recent_excuses': excuses[:2],
             })
             
     context = {

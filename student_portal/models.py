@@ -90,13 +90,29 @@ class InternshipPosting(models.Model):
     education_level = models.CharField(max_length=100)
     views_count = models.PositiveIntegerField(default=0)
     is_approved = models.BooleanField(default=False)
+    
+    # ==========================================
+    # ADVISOR REQUIREMENT: Company Capacity Limit
+    # ==========================================
+    max_interns = models.PositiveIntegerField(
+        default=3, 
+        help_text="Maximum number of students allowed to be hired for this position."
+    )
+    # ==========================================
+    
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     def __str__(self):
         return f"{self.title} at {self.company.company_name}"
 
 class Application(models.Model):
-    STATUS_CHOICES = (('Pending', 'Pending'), ('Shortlisted', 'Shortlisted'), ('Rejected', 'Rejected'))
+    # Added 'Cancelled' to the list of allowed statuses
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'), 
+        ('Shortlisted', 'Shortlisted'), 
+        ('Rejected', 'Rejected'),
+        ('Cancelled', 'Cancelled')
+    )
     
     internship = models.ForeignKey(InternshipPosting, on_delete=models.CASCADE, related_name='applications')
     student_name = models.CharField(max_length=255)
@@ -125,3 +141,30 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.date} ({self.hours_worked} hrs)"
+    
+class SupervisorEvaluation(models.Model):
+    # Links directly to the Application model you already built
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='evaluation')
+    
+    # The 3 specific criteria, graded out of 10
+    attendance_score = models.PositiveIntegerField()
+    teamwork_score = models.PositiveIntegerField()
+    performance_score = models.PositiveIntegerField()
+    
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Grades for {self.application.student_name}"
+
+class CompanyReview(models.Model):
+    # Links directly to the Application 
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='company_review')
+    
+    # 1 to 5 star rating system
+    rating = models.PositiveIntegerField()
+    comments = models.TextField()
+    
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review for {self.application.internship.company.company_name} by {self.application.student_name}"
