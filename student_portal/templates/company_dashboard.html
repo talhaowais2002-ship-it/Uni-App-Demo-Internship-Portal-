@@ -39,10 +39,26 @@
                             <td style="padding: 8px; font-weight: bold;">{{ app.student_name }}</td>
                             <td style="padding: 8px;">{{ app.university_name }}</td>
                             <td style="padding: 8px;">
-                                <a href="{{ app.cv_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">📄 CV</a> | 
-                                <a href="{{ app.cpr_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">🆔 CPR</a> | 
-                                <a href="{{ app.passport_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">✈️ Pass</a> | 
-                                <a href="{{ app.uni_id_file.url }}" target="_blank" style="text-decoration:none;">🎓 ID</a>
+                                {% if app.cv_file %}
+                                    <a href="{{ app.cv_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">📄 CV</a>
+                                {% else %}
+                                    <span style="color: #bbb;" title="No file uploaded">📄 CV</span>
+                                {% endif %} | 
+                                {% if app.cpr_file %}
+                                    <a href="{{ app.cpr_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">🆔 CPR</a>
+                                {% else %}
+                                    <span style="color: #bbb;" title="No file uploaded">🆔 CPR</span>
+                                {% endif %} | 
+                                {% if app.passport_file %}
+                                    <a href="{{ app.passport_file.url }}" target="_blank" style="text-decoration:none; margin-right:5px;">✈️ Pass</a>
+                                {% else %}
+                                    <span style="color: #bbb;" title="No file uploaded">✈️ Pass</span>
+                                {% endif %} | 
+                                {% if app.uni_id_file %}
+                                    <a href="{{ app.uni_id_file.url }}" target="_blank" style="text-decoration:none;">🎓 ID</a>
+                                {% else %}
+                                    <span style="color: #bbb;" title="No file uploaded">🎓 ID</span>
+                                {% endif %}
                             </td>
                             <td style="padding: 8px;"><strong>{{ app.status }}</strong></td>
                             <td style="padding: 8px; text-align: right;">
@@ -133,15 +149,15 @@
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <label style="font-size: 11px; color: #666; font-weight: bold;">ATTENDANCE</label>
-                                    <input type="number" name="attendance" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <input type="number" name="attendance_score" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="font-size: 11px; color: #666; font-weight: bold;">TEAMWORK</label>
-                                    <input type="number" name="teamwork" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <input type="number" name="teamwork_score" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="font-size: 11px; color: #666; font-weight: bold;">TASKS</label>
-                                    <input type="number" name="performance" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <input type="number" name="performance_score" min="1" max="10" required placeholder="/10" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                                 </div>
                             </div>
                             
