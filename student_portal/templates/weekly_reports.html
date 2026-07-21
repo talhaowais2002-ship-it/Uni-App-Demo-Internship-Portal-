@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 5px; color: #222;">Weekly Internship Reports</h2>
+    <p style="color: #666; margin: 0;">Track your progress and submit deliverables for your internship supervisor.</p>
+</div>
+
+{% if not has_internship %}
+    <!-- Locked Access Screen -->
+    <div style="text-align: center; padding: 40px 20px; background: #fff8e6; border: 1px solid #ffe599; border-radius: 8px; color: #7f6000;">
+        <h3 style="margin-top: 0; margin-bottom: 10px;">🔒 Weekly Reports Locked</h3>
+        <p style="margin: 0; font-size: 14px;">You currently do not have an active accepted internship placement. Once an employer accepts your application, you will be able to submit weekly logs here.</p>
+    </div>
+{% else %}
+
+    <!-- Current Placement Banner -->
+    <div style="background: #f4f6f8; border-left: 4px solid #0b2239; padding: 12px 16px; border-radius: 4px; margin-bottom: 25px; color: #333; font-size: 14px;">
+        📍 <strong>Current Placement:</strong> {{ active_application.internship.title }} at {{ active_application.internship.company.company_name }}
+    </div>
+
+    <!-- Header with the + Button on the far right -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #eee;">
+        <h3 style="margin: 0; color: #333; font-size: 20px;">📂 Report History</h3>
+        
+        <button type="button" onclick="toggleForm()" title="Add New Report" style="background: #0b2239; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+            +
+        </button>
+    </div>
+
+    <!-- Hidden Submission Form -->
+    <div id="report-form" style="display: none; background: white; border: 1px solid #0b2239; border-radius: 8px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #0b2239; font-size: 18px;">📝 Submit New Report</h3>
+            <button type="button" onclick="toggleForm()" style="background: none; border: none; font-size: 20px; color: #999; cursor: pointer;">✕</button>
+        </div>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #333;">Week Starting Date (Monday):</label>
+                <input type="date" name="week_start_date" required style="padding: 10px; border-radius: 4px; border: 1px solid #ccc; width: 100%; max-width: 280px; font-family: inherit; display: block;">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #333;">Tasks Completed & Learning Outcomes:</label>
+                <textarea name="tasks_completed" required rows="5" style="padding: 12px; border-radius: 4px; border: 1px solid #ccc; width: 100%; resize: vertical; font-family: inherit; display: block; box-sizing: border-box;" placeholder="Detail your tasks, challenges, and what you worked on this week..."></textarea>
+            </div>
+            
+            <button type="submit" style="background: #0b2239; color: white; padding: 10px 22px; border: none; border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer;">Submit to Supervisor</button>
+        </form>
+    </div>
+
+    <!-- Reports History -->
+    <div>
+        {% if reports %}
+            {% for report in reports %}
+                <div style="background: white; border: 1px solid #e0e0e0; border-radius: 6px; padding: 18px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <strong style="font-size: 16px; color: #111;">Week of: {{ report.week_start_date|date:"F d, Y" }}</strong>
+                        
+                        <!-- Status Badges -->
+                        {% if report.status == 'Approved' %}
+                            <span style="background: #d1e7dd; color: #0f5132; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">Approved</span>
+                        {% elif report.status == 'Rejected' %}
+                            <span style="background: #f8d7da; color: #842029; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">Needs Revision</span>
+                        {% else %}
+                            <span style="background: #fff3cd; color: #664d03; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">Pending Supervisor Review</span>
+                        {% endif %}
+                    </div>
+
+                    <p style="margin: 0 0 10px 0; color: #444; white-space: pre-wrap; font-size: 14px; line-height: 1.5;">{{ report.tasks_completed }}</p>
+
+                    {% if report.instructor_feedback %}
+                        <div style="background: #f8f9fa; border-left: 3px solid #6c757d; padding: 10px 12px; margin-top: 10px; font-size: 13px; color: #333;">
+                            <strong>Supervisor Feedback:</strong> {{ report.instructor_feedback }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Edit & Delete Buttons -->
+                    <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+                        <a href="{% url 'edit_weekly_report' report.id %}" style="background: #0b2239; color: white; padding: 6px 16px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">Edit</a>
+                        
+                        <form action="{% url 'delete_weekly_report' report.id %}" method="POST" style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this report?');" style="background: transparent; color: #dc3545; border: 1px solid #dc3545; padding: 5px 14px; border-radius: 4px; font-size: 13px; font-weight: bold; cursor: pointer;">Delete</button>
+                        </form>
+                    </div>
+
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; padding: 40px 20px; background: #fafafa; border: 1px dashed #ccc; border-radius: 8px;">
+                <p style="color: #777; font-style: italic; margin-bottom: 10px;">No weekly reports submitted yet.</p>
+                <p style="color: #555; font-size: 14px; margin: 0;">Click the <strong>+</strong> button above to log your first week.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endif %}
+
+<script>
+    function toggleForm() {
+        const form = document.getElementById('report-form');
+        if (form.style.display === 'none' || form.style.display === '') {
+            form.style.display = 'block';
+            setTimeout(function() {
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        } else {
+            form.style.display = 'none';
+        }
+    }
+</script>
+
+{% endblock %}

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
-from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile, ShiftExcuse, SupervisorEvaluation, CompanyReview
+from .models import Category, TrainingTrack, InternshipPosting, Application, AttendanceRecord, University, UserProfile, CompanyProfile, ShiftExcuse, SupervisorEvaluation, CompanyReview, WeeklyReport
 from django.contrib.auth.models import User
 import json
 
@@ -40,7 +40,7 @@ def student_dashboard_view(request):
         postings = current_track.postings.filter(is_approved=True)
         
     # ==========================================
-    # NEW: Catch the Student's Company Review
+    # Catch the Student's Company Review
     # ==========================================
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -234,19 +234,40 @@ def admin_manage_view(request):
         return redirect('guest_home')
         
     if request.method == 'POST':
-        record_id = request.POST.get('record_id')
-        record = get_object_or_404(AttendanceRecord, id=record_id)
-        record.is_verified = True
-        record.save()
-        messages.success(request, f"Shift verified successfully for {record.user.username}.")
-        return redirect('admin_manage')
+        # --- Handle Weekly Report Approval / Rejection ---
+        if 'report_id' in request.POST:
+            report_id = request.POST.get('report_id')
+            new_status = request.POST.get('status')
+            feedback = request.POST.get('instructor_feedback', '')
+            
+            report = get_object_or_404(WeeklyReport, id=report_id)
+            report.status = new_status
+            report.instructor_feedback = feedback
+            report.save()
+            messages.success(request, f"Weekly report for {report.student.get_full_name() or report.student.username} marked as {new_status}.")
+            return redirect('admin_manage')
+            
+        # --- Handle Shift Verification ---
+        elif 'record_id' in request.POST:
+            record_id = request.POST.get('record_id')
+            record = get_object_or_404(AttendanceRecord, id=record_id)
+            record.is_verified = True
+            record.save()
+            messages.success(request, f"Shift verified successfully for {record.user.username}.")
+            return redirect('admin_manage')
         
     pending_records = AttendanceRecord.objects.filter(is_verified=False, check_out__isnull=False)
-    return render(request, 'admin_manage.html', {'pending_records': pending_records})
+    pending_reports = WeeklyReport.objects.filter(status='Pending').order_by('submitted_at')
+    
+    context = {
+        'pending_records': pending_records,
+        'pending_reports': pending_reports
+    }
+    
+    return render(request, 'admin_manage.html', context)
 
 @login_required
 def company_dashboard_view(request):
-    """Employer Pipeline: Manage active postings, review applicants, and track hired interns."""
     try:
         profile = request.user.companyprofile
     except Exception:
@@ -257,37 +278,29 @@ def company_dashboard_view(request):
     
     if request.method == 'POST':
         action = request.POST.get('action')
-        app_id = request.POST.get('app_id')
-        if app_id and action:
-            app = get_object_or_404(Application, id=app_id)
-            if app.internship.company == profile:
-                
-                # Handling Shortlist/Reject 
-                if action in ['shortlist', 'reject']:
-                    if action == 'shortlist':
-                        app.status = 'Shortlisted'
-                    elif action == 'reject':
-                        app.status = 'Rejected'
-                    app.save()
-                    messages.success(request, f"Applicant {app.student_name} marked as {app.status}.")
-                
-                # Handling the NEW Evaluation Form
-                elif action == 'evaluate_intern':
-                    att_score = request.POST.get('attendance')
-                    team_score = request.POST.get('teamwork')
-                    perf_score = request.POST.get('performance')
-                    
-                    SupervisorEvaluation.objects.create(
-                        application=app,
-                        attendance_score=att_score,
-                        teamwork_score=team_score,
-                        performance_score=perf_score
-                    )
-                    messages.success(request, f"Official grading submitted for {app.student_name}.")
-                    
-            return redirect('company_dashboard')
+        
+        # --- Handle Report Approval / Rejection ---
+        if action == 'review_report':
+            report_id = request.POST.get('report_id')
+            new_status = request.POST.get('status')  # 'Approved' or 'Rejected'
+            feedback = request.POST.get('instructor_feedback', '')
             
-    # --- NEW: Fetch Hired Interns & Attendance ---
+            report = get_object_or_404(WeeklyReport, id=report_id)
+            
+            # Security check: Ensure this report belongs to an intern at this company
+            if report.application and report.application.internship.company == profile:
+                report.status = new_status
+                report.instructor_feedback = feedback
+                report.save()
+                messages.success(request, f"Weekly report for {report.student.get_full_name() or report.student.username} marked as {new_status}.")
+            return redirect('company_dashboard')
+
+    # Fetch all submitted weekly reports for interns working at this company
+    submitted_reports = WeeklyReport.objects.filter(
+        application__internship__company=profile
+    ).order_by('-submitted_at')
+            
+    # Fetch Hired Interns & Attendance Data
     hired_apps = Application.objects.filter(internship__company=profile, status='Shortlisted')
     hired_interns_data = []
     
@@ -309,7 +322,8 @@ def company_dashboard_view(request):
             
     context = {
         'postings': my_postings,
-        'hired_interns_data': hired_interns_data
+        'hired_interns_data': hired_interns_data,
+        'submitted_reports': submitted_reports,
     }
     return render(request, 'company_dashboard.html', context)
 
@@ -354,3 +368,71 @@ def resume_builder_view(request):
         messages.success(request, "Online Curriculum Vitae updated.")
         return redirect('resume_builder')
     return render(request, 'resume_builder.html', {'profile': profile})
+
+@login_required
+def weekly_reports(request):
+    # Check if the student has an active/accepted internship placement
+    active_application = Application.objects.filter(
+        email=request.user.email, 
+        status='Shortlisted'
+    ).first()
+
+    # If they don't have an active internship, block access
+    if not active_application:
+        return render(request, 'weekly_reports.html', {
+            'has_internship': False,
+            'reports': []
+        })
+
+    # Save new report linked to the active internship placement
+    if request.method == "POST":
+        week_date = request.POST.get('week_start_date')
+        tasks = request.POST.get('tasks_completed')
+        
+        WeeklyReport.objects.create(
+            student=request.user,
+            application=active_application,
+            week_start_date=week_date,
+            tasks_completed=tasks,
+            status='Pending'
+        )
+        messages.success(request, "Weekly report submitted to your internship supervisor for review!")
+        return redirect('weekly_reports')
+
+    past_reports = WeeklyReport.objects.filter(student=request.user).order_by('-week_start_date')
+    
+    return render(request, 'weekly_reports.html', {
+        'has_internship': True,
+        'active_application': active_application,
+        'reports': past_reports
+    })
+    
+@login_required
+def edit_weekly_report(request, report_id):
+    # Security: Ensure the report exists AND belongs to the logged-in user
+    report = get_object_or_404(WeeklyReport, id=report_id, student=request.user)
+    
+    if request.method == "POST":
+        # Overwrite the existing data with the new POST data
+        report.week_start_date = request.POST.get('week_start_date')
+        report.tasks_completed = request.POST.get('tasks_completed')
+        report.save()
+        
+        messages.success(request, "Weekly report updated successfully!")
+        return redirect('weekly_reports')
+        
+    # If it's a GET request, send the existing report data to a new template
+    return render(request, 'edit_weekly_report.html', {'report': report})
+
+@login_required
+def delete_weekly_report(request, report_id):
+    # Security: Ensure the report exists AND belongs to the logged-in user
+    report = get_object_or_404(WeeklyReport, id=report_id, student=request.user)
+    
+    if request.method == "POST":
+        report.delete()
+        messages.success(request, "Weekly report deleted successfully!")
+        return redirect('weekly_reports')
+        
+    # Optional: Render a confirmation page before deleting (best practice)
+    return render(request, 'confirm_delete_report.html', {'report': report})

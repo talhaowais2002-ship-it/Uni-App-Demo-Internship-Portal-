@@ -168,3 +168,24 @@ class CompanyReview(models.Model):
 
     def __str__(self):
         return f"Review for {self.application.internship.company.company_name} by {self.application.student_name}"
+
+class WeeklyReport(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending Review'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Needs Revision'),
+    )
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='weekly_reports')
+    # Link directly to the active internship application
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='weekly_reports', null=True, blank=True)
+    week_start_date = models.DateField()
+    tasks_completed = models.TextField()
+    
+    # Status & Instructor Feedback
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    instructor_feedback = models.TextField(blank=True, null=True)
+    
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report by {self.student.username} - {self.week_start_date} ({self.status})"

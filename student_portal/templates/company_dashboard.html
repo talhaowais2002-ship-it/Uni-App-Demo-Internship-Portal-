@@ -175,6 +175,63 @@
             <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
             You haven't hired any interns yet. Shortlist applicants from your pipeline above to start tracking their progress.
         </div>
+    <!-- Weekly Reports Approval Section -->
+<div class="card mt-4 shadow-sm">
+    <div class="card-header bg-white">
+        <h4 class="mb-0">📋 Intern Weekly Reports</h4>
+    </div>
+    <div class="card-body">
+        {% if submitted_reports %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Week Start</th>
+                            <th>Tasks Logged</th>
+                            <th>Status</th>
+                            <th>Action / Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in submitted_reports %}
+                            <tr>
+                                <td><strong>{{ report.student.get_full_name|default:report.student.username }}</strong></td>
+                                <td>{{ report.week_start_date|date:"M d, Y" }}</td>
+                                <td style="max-width: 300px; white-space: pre-wrap;">{{ report.tasks_completed }}</td>
+                                <td>
+                                    {% if report.status == 'Approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif report.status == 'Rejected' %}
+                                        <span class="badge bg-danger">Needs Revision</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pending Review</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" style="min-width: 220px;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="review_report">
+                                        <input type="hidden" name="report_id" value="{{ report.id }}">
+                                        
+                                        <input type="text" name="instructor_feedback" class="form-control form-control-sm mb-2" placeholder="Optional feedback..." value="{{ report.instructor_feedback|default:'' }}">
+                                        
+                                        <div class="btn-group btn-group-sm w-100">
+                                            <button type="submit" name="status" value="Approved" class="btn btn-outline-success">Approve</button>
+                                            <button type="submit" name="status" value="Rejected" class="btn btn-outline-danger">Reject</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">No weekly reports submitted by interns yet.</p>
+        {% endif %}
+    </div>
+</div>
     {% endif %}
 </div>
 {% endblock %}

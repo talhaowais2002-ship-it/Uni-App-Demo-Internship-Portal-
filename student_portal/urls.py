@@ -11,7 +11,9 @@ urlpatterns = [
     path('company/dashboard/', views.company_dashboard_view, name='company_dashboard'),
     path('company/post/', views.post_internship_view, name='post_internship'),
     path('seeker/resume/', views.resume_builder_view, name='resume_builder'),
-    
+    path('weekly-reports/', views.weekly_reports, name='weekly_reports'),
+    path('weekly-reports/edit/<int:report_id>/', views.edit_weekly_report, name='edit_weekly_report'),
+    path('weekly-reports/delete/<int:report_id>/', views.delete_weekly_report, name='delete_weekly_report'),
     # Global Native Authentication Routes
     path('accounts/login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='guest_home'), name='logout'),
